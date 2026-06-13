@@ -4,7 +4,7 @@ import { useCallback, useRef, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
-import { useChatStore } from '@/store/chatStore';
+import { useChatStore } from '@/stores/chatStore';
 import { streamChat, uploadFile } from '@/lib/api';
 import Sidebar from './Sidebar';
 import ChatWindow from './ChatWindow';
