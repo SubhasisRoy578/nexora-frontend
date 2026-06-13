@@ -8,7 +8,7 @@ import {
   Sun, Moon, Zap, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { UserButton } from '@clerk/nextjs';
-import { useChatStore } from '@/store/chatStore';
+import { useChatStore } from '@/stores/chatStore';
 
 const NAV = [
   { href: '/chat',      icon: MessageSquare,  label: 'Chat' },
