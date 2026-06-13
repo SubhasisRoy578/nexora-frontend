@@ -8,7 +8,8 @@ import ChatInput from '@/components/chat/ChatInput'
 import { useChatStore } from '@/store/chatStore'
 
 export default function ChatPage() {
-  const { sessionId } = useParams<{ id: string }>() || {}
+  const params = useParams<{ sessionId: string }>()
+  const sessionId = params?.sessionId
   const { isTemporaryMode } = useChatStore()
 
   return (
