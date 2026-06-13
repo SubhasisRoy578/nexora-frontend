@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { useChatStore } from '@/store/chatStore'
+import { useChatStore } from '@/stores/chatStore'
 
 const PROJECTS = [
   { name: 'Market Research', color: '#3b82f6' },
