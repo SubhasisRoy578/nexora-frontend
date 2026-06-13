@@ -9,7 +9,7 @@ import AgentsView from './components/AgentsView'
 import CommandPalette from './components/CommandPalette'
 import RightPanel from './components/RightPanel'
 import LoginView from './components/LoginView'
-import TopBar from './components/TopBar'
+import TopBar from './components/Topbar'
 import './nexora.css'
 
 export type View = 'chat' | 'dashboard' | 'knowledge' | 'settings' | 'analytics' | 'agents' | 'code'
