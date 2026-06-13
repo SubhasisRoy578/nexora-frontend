@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { useChatStore, Message } from '@/store/chatStore'
+import { useChatStore, Message } from '@/stores/chatStore'
 
 interface ChatWindowProps {
   sessionId?: string  // ← ADDED: Accept sessionId prop
