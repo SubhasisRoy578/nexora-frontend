@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useAgentStore } from '@/store/agentStore'
+import { useAgentStore } from '@/stores/agentStore'
 
 const MODEL_USAGE = [
   { name: 'Claude Sonnet', pct: 52, color: '#8b5cf6', tokens: '2.4M' },
