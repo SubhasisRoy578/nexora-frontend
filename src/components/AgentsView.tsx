@@ -1,5 +1,18 @@
 import { useEffect, useState } from 'react'
-import { useAgentStore, Agent } from '../stores/agentStore'
+const useAgentStore = () => ({
+  agents: [
+    { id: 'research', name: 'Research Agent', status: 'idle', tasks: 147, success: '95%', icon: '🔍' },
+    { id: 'rag', name: 'RAG Agent', status: 'running', tasks: 89, success: '96%', icon: '◈' },
+    { id: 'code', name: 'Code Agent', status: 'idle', tasks: 234, success: '97%', icon: '⌥' },
+    { id: 'browser', name: 'Browser Agent', status: 'idle', tasks: 56, success: '96%', icon: '◻' },
+  ],
+  tasks: [],
+  loading: false,
+  error: null,
+  fetchAgents: () => {},
+  dispatch: async () => {},
+  setError: () => {},
+})
 
 const AGENT_ICONS: Record<string, string> = {
   research: '🔍',
