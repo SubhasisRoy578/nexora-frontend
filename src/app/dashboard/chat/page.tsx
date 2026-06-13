@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import ChatWindow from '@/components/chat/ChatWindow'
 import ChatInput from '@/components/chat/ChatInput'
 import { useChatStore } from '@/store/chatStore'
+import TemporaryBanner from '@/components/TemporaryBanner'
 
 export default function ChatPage() {
   const params = useParams<{ sessionId: string }>()
