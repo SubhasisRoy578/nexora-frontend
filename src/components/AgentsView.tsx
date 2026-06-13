@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useAgentStore, Agent } from '../stores/agentStore'  // ← IMPORT REAL STORE
+import { useAgentStore, Agent } from '../store/agentStore'  // ← IMPORT REAL STORE
 
 const AGENT_ICONS: Record<string, string> = {
   research: '🔍',
