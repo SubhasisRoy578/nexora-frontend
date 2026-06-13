@@ -7,7 +7,7 @@ import {
   Sun, Moon, ChevronLeft, ChevronRight, Zap
 } from 'lucide-react';
 import { UserButton } from '@clerk/nextjs';
-import { useChatStore } from '@/store/chatStore';
+import { useChatStore } from '@/stores/chatStore';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function Sidebar() {
