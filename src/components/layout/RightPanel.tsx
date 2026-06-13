@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useAgentStore } from '@/store/agentStore'
+import { useAgentStore } from '@/stores/agentStore'
 
 export default function RightPanel() {
   const store = useAgentStore()
