@@ -101,5 +101,3 @@ export default function AnalyticsView() {
     </div>
   )
 }
-EOF
-echo "done"
