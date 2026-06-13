@@ -1,6 +1,6 @@
 'use client'
 import { useRef, useState } from 'react'
-import { useChatStore } from '@/store/chatStore'
+import { useChatStore } from '@/stores/chatStore'
 
 const TOOLS = [
   { id: 'rag',    icon: 'ti-database',    label: 'RAG',    defaultOn: true },
