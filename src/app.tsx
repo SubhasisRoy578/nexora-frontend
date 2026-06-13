@@ -49,5 +49,4 @@ export default function App() {
     </div>
   )
 }
-APPEOF
-echo "App.tsx created"
+
