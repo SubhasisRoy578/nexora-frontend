@@ -1,6 +1,11 @@
 'use client'
+
 import { useEffect, useRef } from 'react'
 import { useChatStore, Message } from '@/store/chatStore'
+
+interface ChatWindowProps {
+  sessionId?: string  // ← ADDED: Accept sessionId prop
+}
 
 const TYPE_TAG: Record<string, { label: string; icon: string; bg: string; color: string; border: string }> = {
   agent: { label: 'AGENT',    icon: 'ti-robot',    bg: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: 'rgba(139,92,246,0.22)' },
@@ -9,10 +14,27 @@ const TYPE_TAG: Record<string, { label: string; icon: string; bg: string; color:
   web:   { label: 'WEB',      icon: 'ti-world',    bg: 'rgba(59,130,246,0.10)', color: '#60a5fa', border: 'rgba(59,130,246,0.20)' },
 }
 
-export default function ChatWindow() {
-  const { messages, isTyping } = useChatStore()
+export default function ChatWindow({ sessionId }: ChatWindowProps) {  // ← UPDATED: Accept prop
+  const { messages, isTyping, loadSession, currentSessionId } = useChatStore()
   const bottomRef = useRef<HTMLDivElement>(null)
+  const sessionLoadedRef = useRef(false)
 
+  // Load session messages when sessionId changes
+  useEffect(() => {
+    if (sessionId && sessionId !== currentSessionId && !sessionLoadedRef.current) {
+      sessionLoadedRef.current = true
+      loadSession?.(sessionId)
+    }
+    
+    // Reset flag when sessionId changes
+    return () => {
+      if (sessionId !== currentSessionId) {
+        sessionLoadedRef.current = false
+      }
+    }
+  }, [sessionId, currentSessionId, loadSession])
+
+  // Auto-scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isTyping])
@@ -29,8 +51,8 @@ export default function ChatWindow() {
         background: 'var(--nx-bg)',
       }}
     >
-      {/* Context badge */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
+      {/* Session info badge - ENHANCED */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4, gap: 8 }}>
         <span style={{
           fontSize: 9, fontFamily: 'var(--nx-mono)',
           color: 'var(--nx-text-muted)',
@@ -40,7 +62,32 @@ export default function ChatWindow() {
         }}>
           Research workspace · RAG + Web Search enabled
         </span>
+        {sessionId && (
+          <span style={{
+            fontSize: 9, fontFamily: 'var(--nx-mono)',
+            color: '#22d3ee',
+            background: 'rgba(6,182,212,0.10)',
+            padding: '3px 10px', borderRadius: 20,
+            border: '1px solid rgba(6,182,212,0.20)',
+          }}>
+            Session: {sessionId.slice(0, 8)}...
+          </span>
+        )}
       </div>
+
+      {/* Empty state - ENHANCED */}
+      {messages.length === 0 && !isTyping && (
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', height: '60%', gap: 12,
+          color: 'var(--nx-text-muted)',
+        }}>
+          <i className="ti ti-message-2" style={{ fontSize: 48, opacity: 0.3 }} />
+          <p style={{ fontSize: 13, textAlign: 'center' }}>
+            {sessionId ? 'Continue your conversation below' : 'Start a new conversation'}
+          </p>
+        </div>
+      )}
 
       {messages.map((msg) => (
         <MessageBubble key={msg.id} msg={msg} />
@@ -78,10 +125,10 @@ function MessageBubble({ msg }: { msg: Message }) {
       </div>
 
       {/* Content */}
-      <div>
+      <div style={{ maxWidth: 'calc(100% - 36px)' }}>
         {/* Tags */}
         {msg.tags && msg.tags.length > 0 && (
-          <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 5, flexWrap: 'wrap' }}>
             {msg.tags.map(tag => {
               const t = TYPE_TAG[tag]
               if (!t) return null
@@ -111,8 +158,9 @@ function MessageBubble({ msg }: { msg: Message }) {
           color: 'var(--nx-text)',
           borderTopRightRadius: isUser ? 3 : 10,
           borderTopLeftRadius: isUser ? 10 : 3,
+          wordBreak: 'break-word',
         }}>
-          {msg.content}
+          {msg.content || (msg.role === 'assistant' && !msg.content ? '...' : msg.content)}
         </div>
 
         {/* Sources */}
@@ -125,8 +173,10 @@ function MessageBubble({ msg }: { msg: Message }) {
                 background: 'rgba(255,255,255,0.04)',
                 border: '1px solid var(--nx-border)',
                 color: 'var(--nx-text-muted)', cursor: 'pointer',
-              }}>
-                {s}
+              }}
+              onClick={() => window.open(s, '_blank')}
+              >
+                📎 {s.length > 30 ? s.slice(0, 30) + '...' : s}
               </span>
             ))}
           </div>
@@ -142,7 +192,7 @@ function MessageBubble({ msg }: { msg: Message }) {
             border: '1px solid rgba(139,92,246,0.18)',
             color: '#a78bfa',
           }}>
-            {msg.model} · {msg.latency}
+            🤖 {msg.model} {msg.latency && `· ${msg.latency}`}
           </span>
         )}
       </div>
@@ -164,6 +214,9 @@ function TypingIndicator() {
         background: 'var(--nx-card)', border: '1px solid var(--nx-border)',
         display: 'flex', gap: 4, alignItems: 'center',
       }}>
+        <span style={{ fontSize: 11, color: 'var(--nx-text-muted)', marginRight: 4 }}>
+          Nexora is thinking
+        </span>
         {[0, 0.2, 0.4].map((delay, i) => (
           <span key={i} style={{
             width: 6, height: 6, borderRadius: '50%',
@@ -173,6 +226,12 @@ function TypingIndicator() {
           }} />
         ))}
       </div>
+      <style>{`
+        @keyframes nx-pulse {
+          0%, 100% { opacity: 0.3; transform: scale(0.8); }
+          50% { opacity: 1; transform: scale(1.2); }
+        }
+      `}</style>
     </div>
   )
 }
