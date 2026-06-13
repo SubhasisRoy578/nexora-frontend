@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View } from '../App'
+import type { View } from '@/types'
 
 const COMMANDS = [
   { section: 'Navigate', items: [
