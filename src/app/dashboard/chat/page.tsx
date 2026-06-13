@@ -6,18 +6,16 @@ import { useParams } from 'next/navigation'
 import ChatWindow from '@/components/chat/ChatWindow'
 import ChatInput from '@/components/chat/ChatInput'
 import { useChatStore } from '@/store/chatStore'
-import TemporaryBanner from '@/components/TemporaryBanner'
+
 
 export default function ChatPage() {
   const params = useParams<{ sessionId: string }>()
   const sessionId = params?.sessionId
-  const { isTemporaryMode } = useChatStore()
+  //const { isTemporaryMode } = useChatStore()
 
   return (
     <div className="flex flex-col h-full">
       {/* Temporary mode banner */}
-      {isTemporaryMode && <TemporaryBanner />}
-
       {/* Messages area */}
       <div className="flex-1 overflow-hidden">
         <ChatWindow sessionId={sessionId} />
