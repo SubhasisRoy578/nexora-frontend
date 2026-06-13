@@ -1,18 +1,5 @@
 import { useEffect, useState } from 'react'
-const useAgentStore = () => ({
-  agents: [
-    { id: 'research', name: 'Research Agent', status: 'idle', tasks: 147, success: '95%', icon: '🔍' },
-    { id: 'rag', name: 'RAG Agent', status: 'running', tasks: 89, success: '96%', icon: '◈' },
-    { id: 'code', name: 'Code Agent', status: 'idle', tasks: 234, success: '97%', icon: '⌥' },
-    { id: 'browser', name: 'Browser Agent', status: 'idle', tasks: 56, success: '96%', icon: '◻' },
-  ],
-  tasks: [],
-  loading: false,
-  error: null,
-  fetchAgents: () => {},
-  dispatch: async () => {},
-  setError: () => {},
-})
+import { useAgentStore, Agent } from '../stores/agentStore'  // ← IMPORT REAL STORE
 
 const AGENT_ICONS: Record<string, string> = {
   research: '🔍',
@@ -41,13 +28,12 @@ export default function AgentsView() {
   const handleRunTask = async (agentId: string, taskName: string) => {
     setRunningTask(agentId)
     try {
-      await dispatch(agentId, taskName)
+      await dispatch(agentId, taskName)  // ← NOW WORKS: dispatch expects 2 args
     } finally {
       setRunningTask(null)
     }
   }
 
-  // Format success rate (handle string or number)
   const formatSuccess = (success: string | number) => {
     if (typeof success === 'number') return `${success}%`
     return success
@@ -55,7 +41,6 @@ export default function AgentsView() {
 
   return (
     <div className="agents-view" style={{ padding: '24px', height: '100%', overflowY: 'auto' }}>
-      {/* Header */}
       <div className="dash-header" style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
           <div>
@@ -84,7 +69,6 @@ export default function AgentsView() {
         </div>
       </div>
 
-      {/* Error Display */}
       {error && (
         <div style={{ 
           background: 'rgba(239,68,68,0.1)', 
@@ -107,7 +91,6 @@ export default function AgentsView() {
         </div>
       )}
 
-      {/* Loading State */}
       {loading && agents.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px', color: 'var(--nx-text-muted)' }}>
           <div style={{ marginBottom: '12px' }}>⟳</div>
@@ -115,7 +98,6 @@ export default function AgentsView() {
         </div>
       ) : (
         <>
-          {/* Agents Grid */}
           <div className="agents-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
@@ -227,7 +209,6 @@ export default function AgentsView() {
             ))}
           </div>
 
-          {/* Agent Run History */}
           <div className="task-feed">
             <div className="task-feed-header" style={{ marginBottom: '16px' }}>
               <span className="section-title" style={{ fontSize: '16px', fontWeight: 600 }}>Agent Run History</span>
