@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import ChatWindow from '@/components/chat/ChatWindow'
 import ChatInput from '@/components/chat/ChatInput'
-import { useChatStore } from '@/store/chatStore'
+import { useChatStore } from '@/stores/chatStore'
 
 
 export default function ChatPage() {
