@@ -7,7 +7,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Copy, Check, User, Bot, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useChatStore, Message, AgentTag } from '@/store/chatStore';
+import { useChatStore, Message, AgentTag } from '@/stores/chatStore';
 
 const AGENT_LABELS: Record<AgentTag, { label: string; color: string }> = {
   research: { label: 'Research',  color: '#3b82f6' },
