@@ -102,5 +102,3 @@ export default function SettingsView() {
     </div>
   )
 }
-EOF
-echo "done"
