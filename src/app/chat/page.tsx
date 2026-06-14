@@ -10,7 +10,8 @@ import { useChatStore } from '@/stores/chatStore'
 import { streamChat, uploadDocument } from '@/lib/api'
 
 export default function ChatPage() {
-  const { user, getToken } = useUser()
+  const { user } = useUser()
+  const { getToken } = useAuth()
   const { addMessage, updateMessage } = useChatStore()
   const [isStreaming, setIsStreaming] = useState(false)
 
