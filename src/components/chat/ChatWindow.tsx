@@ -12,10 +12,30 @@ interface Message {
   attachments?: Array<{ id: string; name: string; type: string; size: number }>
 }
 
-export default function ChatWindow() {
-  const { messages, isStreaming } = useChatStore()
+// ✅ ADDED: Props interface to accept sessionId
+interface ChatWindowProps {
+  sessionId?: string
+}
+
+export default function ChatWindow({ sessionId }: ChatWindowProps) {
+  const { messages, isStreaming, loadSession, currentSessionId } = useChatStore()
   const bottomRef = useRef<HTMLDivElement>(null)
-  const activeMessages = useChatStore((s) => s.activeMessages()) as Message[]
+  const activeMessages = useChatStore((s) => s.activeMessages?.() || messages) as Message[]
+  const sessionLoadedRef = useRef(false)
+
+  // ✅ ADDED: Load session when sessionId prop changes
+  useEffect(() => {
+    if (sessionId && sessionId !== currentSessionId && !sessionLoadedRef.current && loadSession) {
+      sessionLoadedRef.current = true
+      loadSession(sessionId)
+    }
+    
+    return () => {
+      if (sessionId !== currentSessionId) {
+        sessionLoadedRef.current = false
+      }
+    }
+  }, [sessionId, currentSessionId, loadSession])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -30,6 +50,11 @@ export default function ChatWindow() {
           <p className="text-gray-400 text-sm">
             Upload documents and ask questions. Your AI agent will search through your knowledge base to provide accurate answers.
           </p>
+          {sessionId && (
+            <p className="text-xs text-gray-500 mt-4">
+              Session ID: {sessionId.slice(0, 8)}...
+            </p>
+          )}
         </div>
       </div>
     )
