@@ -48,5 +48,3 @@ export default function LoginView({ onLogin }: { onLogin: () => void }) {
     </div>
   )
 }
-EOF
-echo "done"
