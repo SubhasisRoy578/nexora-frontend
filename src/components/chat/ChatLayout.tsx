@@ -5,13 +5,13 @@ import { useUser } from '@clerk/nextjs';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import { useChatStore } from '@/stores/chatStore';
-import { streamChat } from '@/lib/api';  // ← Removed uploadFile
+import { streamChat, uploadDocument } from '@/lib/api';  // Using your actual uploadDocument
 import Sidebar from './Sidebar';
 import ChatWindow from './ChatWindow';
 import ChatInput from './ChatInput';
 
 export default function ChatLayout() {
-  const { user } = useUser();
+  const { user, getToken } = useUser();
   const {
     createSession, addMessage, updateMessage,
     provider, isStreaming, setIsStreaming, sidebarOpen,
@@ -35,16 +35,30 @@ export default function ChatLayout() {
         sessionId = createSession();
       }
 
+      const token = await getToken();
       const userId = user?.id ?? 'anonymous';
 
+      // Upload files to your RAG backend
       let fileContext = '';
       if (files.length > 0) {
-        // File upload temporarily disabled until uploadFile is implemented
-        toast.error('File upload coming soon');
+        try {
+          const uploads = await Promise.all(
+            files.map(async (file) => {
+              const result = await uploadDocument(file, token);
+              return `[File: ${result.name || file.name} - ${result.chunks || '?'} chunks indexed]`;
+            })
+          );
+          fileContext = uploads.join(' ');
+          toast.success(`${files.length} file(s) uploaded and indexed to RAG`);
+        } catch (err) {
+          console.error('Upload error:', err);
+          toast.error('File upload failed — sending message without files');
+        }
       }
 
       const fullMessage = fileContext ? `${fileContext}\n\n${text}` : text;
 
+      // Add user message
       addMessage(sessionId, {
         role: 'user',
         content: fullMessage,
@@ -56,6 +70,7 @@ export default function ChatLayout() {
         })),
       });
 
+      // Add assistant placeholder
       const assistantId = addMessage(sessionId, {
         role: 'assistant',
         content: '',
@@ -68,46 +83,36 @@ export default function ChatLayout() {
       abortRef.current = abort;
 
       let buffer = '';
+      const tools = Array.from(new Set(['rag', ...(text.includes('code') ? ['code'] : [])]));
 
-      await streamChat({
-        userId,
-        message: fullMessage,
-        provider,
-        sessionId,
-        signal: abort.signal,
-
-        onToken: (token) => {
-          buffer += token;
+      try {
+        for await (const chunk of streamChat(fullMessage, tools, token)) {
+          buffer += chunk;
           updateMessage(sessionId!, assistantId, {
             content: buffer,
             isStreaming: true,
           });
-        },
+        }
 
-        onDone: (meta) => {
-          updateMessage(sessionId!, assistantId, {
-            content: buffer || 'Done.',
-            isStreaming: false,
-            agent: meta?.agent as never,
-            provider: meta?.provider as never,
-          });
-          setIsStreaming(false);
-        },
-
-        onError: (err) => {
-          updateMessage(sessionId!, assistantId, {
-            content: '',
-            isStreaming: false,
-            error: true,
-          });
-          setIsStreaming(false);
-          toast.error(`Error: ${err}`);
-        },
-      });
+        updateMessage(sessionId!, assistantId, {
+          content: buffer || 'Done.',
+          isStreaming: false,
+        });
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Stream error';
+        updateMessage(sessionId!, assistantId, {
+          content: `Error: ${errorMsg}`,
+          isStreaming: false,
+          error: true,
+        });
+        toast.error(`Error: ${errorMsg}`);
+      } finally {
+        setIsStreaming(false);
+      }
     },
     [
       isStreaming, activeSessionId, createSession,
-      user, provider, addMessage, updateMessage, setIsStreaming,
+      user, getToken, provider, addMessage, updateMessage, setIsStreaming,
     ]
   );
 
@@ -116,15 +121,15 @@ export default function ChatLayout() {
   return (
     <div
       className="flex h-screen overflow-hidden"
-      style={{ background: 'var(--bg)' }}
+      style={{ background: 'var(--bg, #0A0C12)' }}
     >
       <Toaster
         position="top-center"
         toastOptions={{
           style: {
-            background: 'var(--surface)',
-            color: 'var(--text)',
-            border: '1px solid var(--border)',
+            background: 'var(--surface, #11141C)',
+            color: 'var(--text, #E5E7EB)',
+            border: '1px solid var(--border, #1E2433)',
             borderRadius: 12,
             fontSize: 13,
           },
@@ -139,8 +144,8 @@ export default function ChatLayout() {
         <div
           className="flex items-center justify-between px-6 py-3.5 border-b flex-shrink-0"
           style={{
-            background: 'var(--surface)',
-            borderColor: 'var(--border)',
+            background: 'var(--surface, #11141C)',
+            borderColor: 'var(--border, #1E2433)',
           }}
         >
           <div className="flex items-center gap-3">
@@ -155,11 +160,11 @@ export default function ChatLayout() {
             <div>
               <h1
                 className="text-sm font-semibold leading-tight"
-                style={{ fontFamily: 'var(--font-display)', color: 'var(--text)' }}
+                style={{ fontFamily: 'var(--font-display)', color: 'var(--text, #E5E7EB)' }}
               >
                 {sessionTitle}
               </h1>
-              <p className="text-[11px]" style={{ color: 'var(--text-3)' }}>
+              <p className="text-[11px]" style={{ color: 'var(--text-3, #6B7280)' }}>
                 {activeMessages.length} messages
               </p>
             </div>
@@ -171,7 +176,7 @@ export default function ChatLayout() {
                 className="w-1.5 h-1.5 rounded-full"
                 style={{ background: '#10b981' }}
               />
-              <span className="text-[11px]" style={{ color: 'var(--text-3)' }}>
+              <span className="text-[11px]" style={{ color: 'var(--text-3, #6B7280)' }}>
                 Connected
               </span>
             </div>
@@ -183,8 +188,8 @@ export default function ChatLayout() {
         <div
           className="flex-shrink-0 px-4 pb-4 pt-2 border-t"
           style={{
-            borderColor: 'var(--border)',
-            background: 'var(--bg)',
+            borderColor: 'var(--border, #1E2433)',
+            background: 'var(--bg, #0A0C12)',
           }}
         >
           <div className="max-w-3xl mx-auto w-full">
