@@ -1,6 +1,7 @@
 'use client'
+
 import { useRef, useState } from 'react'
-import { useChatStore } from '@/stores/chatStore'
+import toast from 'react-hot-toast'
 
 const TOOLS = [
   { id: 'rag',    icon: 'ti-database',    label: 'RAG',    defaultOn: true },
@@ -10,9 +11,14 @@ const TOOLS = [
   { id: 'upload', icon: 'ti-file-upload', label: 'Upload', defaultOn: false },
 ]
 
-export default function ChatInput() {
-  const { sendMessage, loading } = useChatStore()  // ← Changed isTyping to loading
+interface ChatInputProps {
+  onSend: (text: string, files: File[]) => void
+  disabled?: boolean
+}
+
+export default function ChatInput({ onSend, disabled = false }: ChatInputProps) {
   const [value, setValue] = useState('')
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [activeTools, setActiveTools] = useState<Set<string>>(
     new Set(TOOLS.filter(t => t.defaultOn).map(t => t.id))
   )
@@ -20,7 +26,10 @@ export default function ChatInput() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function toggleTool(id: string) {
-    if (id === 'upload') { fileInputRef.current?.click(); return }
+    if (id === 'upload') { 
+      fileInputRef.current?.click()
+      return 
+    }
     setActiveTools(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
@@ -28,13 +37,26 @@ export default function ChatInput() {
     })
   }
 
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || [])
+    if (files.length > 0) {
+      setSelectedFiles(prev => [...prev, ...files])
+      toast.success(`${files.length} file(s) selected`)
+    }
+  }
+
   function handleSend() {
-    if (!value.trim() || loading) return  // ← Changed isTyping to loading
-    sendMessage(value.trim(), Array.from(activeTools))
+    if ((!value.trim() && selectedFiles.length === 0) || disabled) return
+    onSend(value.trim(), selectedFiles)
     setValue('')
+    setSelectedFiles([])
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
+  }
+
+  function removeFile(index: number) {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -54,9 +76,32 @@ export default function ChatInput() {
   return (
     <div style={{
       padding: '12px 16px 14px',
-      background: 'var(--nx-bg)',
-      borderTop: '1px solid var(--nx-border)',
+      background: 'var(--nx-bg, #0A0C12)',
+      borderTop: '1px solid var(--nx-border, #1E2433)',
     }}>
+      {/* Selected files preview */}
+      {selectedFiles.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+          {selectedFiles.map((file, idx) => (
+            <div key={idx} style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'rgba(59,130,246,0.1)',
+              border: '1px solid rgba(59,130,246,0.2)',
+              borderRadius: 4, padding: '2px 8px',
+              fontSize: 10, fontFamily: 'monospace',
+            }}>
+              📎 {file.name} ({(file.size / 1024).toFixed(0)} KB)
+              <button 
+                onClick={() => removeFile(idx)} 
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Tool chips */}
       <div style={{ display: 'flex', gap: 5, marginBottom: 8, flexWrap: 'wrap' }}>
         {TOOLS.map(tool => {
@@ -69,14 +114,13 @@ export default function ChatInput() {
               style={{
                 height: 22, padding: '0 8px', borderRadius: 4, cursor: 'pointer',
                 background: on ? 'rgba(59,130,246,0.10)' : 'rgba(255,255,255,0.04)',
-                border: on ? '1px solid rgba(59,130,246,0.28)' : '1px solid var(--nx-border)',
-                color: on ? 'var(--nx-accent)' : 'var(--nx-text-muted)',
-                fontSize: 10, fontFamily: 'var(--nx-mono)',
+                border: on ? '1px solid rgba(59,130,246,0.28)' : '1px solid var(--nx-border, #1E2433)',
+                color: on ? '#22d3ee' : 'var(--nx-text-muted, #6B7280)',
+                fontSize: 10, fontFamily: 'monospace',
                 display: 'flex', alignItems: 'center', gap: 4,
-                transition: 'all 0.13s',
               }}
             >
-              <i className={`ti ${tool.icon}`} style={{ fontSize: 10 }} aria-hidden="true" />
+              <i className={`ti ${tool.icon}`} style={{ fontSize: 10 }} />
               {tool.label}
             </button>
           )
@@ -86,46 +130,45 @@ export default function ChatInput() {
       {/* Input box */}
       <div style={{
         display: 'flex', alignItems: 'flex-end', gap: 8,
-        background: 'var(--nx-card)',
-        border: '1px solid var(--nx-border)',
+        background: 'var(--nx-card, #11141C)',
+        border: '1px solid var(--nx-border, #1E2433)',
         borderRadius: 10, padding: '8px 10px',
-        transition: 'border-color 0.15s',
-      }}
-        onFocusCapture={e => (e.currentTarget.style.borderColor = 'rgba(59,130,246,0.40)')}
-        onBlurCapture={e => (e.currentTarget.style.borderColor = 'var(--nx-border)')}
-      >
+      }}>
         <textarea
           ref={textareaRef}
           value={value}
           onChange={e => { setValue(e.target.value); handleInput() }}
           onKeyDown={handleKeyDown}
-          placeholder="Ask anything, launch an agent, or upload a document…"
+          placeholder={selectedFiles.length ? "Ask a question about your document..." : "Ask anything, launch an agent, or upload a document…"}
           rows={1}
-          aria-label="Chat input"
           style={{
             flex: 1, background: 'none', border: 'none', outline: 'none',
-            color: 'var(--nx-text)', fontFamily: 'var(--nx-display)',
-            fontSize: 12, resize: 'none', lineHeight: 1.55,
-            maxHeight: 120, paddingTop: 2,
+            color: 'var(--nx-text, #E5E7EB)', fontSize: 12, resize: 'none', lineHeight: 1.55,
+            maxHeight: 120, fontFamily: 'inherit',
           }}
         />
         <button
           onClick={handleSend}
-          disabled={!value.trim() || loading}
-          aria-label="Send message"
+          disabled={(!value.trim() && selectedFiles.length === 0) || disabled}
           style={{
             width: 30, height: 30, borderRadius: 7, border: 'none',
-            background: value.trim() && !loading ? 'var(--nx-accent)' : 'rgba(59,130,246,0.25)',
-            color: '#fff', cursor: value.trim() && !loading ? 'pointer' : 'default',
+            background: (value.trim() || selectedFiles.length) && !disabled ? '#22d3ee' : 'rgba(34,211,238,0.25)',
+            color: '#000', cursor: (value.trim() || selectedFiles.length) && !disabled ? 'pointer' : 'default',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0, transition: 'all 0.15s',
           }}
         >
-          <i className="ti ti-arrow-up" style={{ fontSize: 14 }} aria-hidden="true" />
+          ↑
         </button>
       </div>
 
-      <input ref={fileInputRef} type="file" style={{ display: 'none' }} accept=".pdf,.txt,.md,.docx" />
+      <input 
+        ref={fileInputRef} 
+        type="file" 
+        style={{ display: 'none' }} 
+        accept=".pdf,.txt,.md,.docx,.csv,.html" 
+        multiple 
+        onChange={handleFileSelect} 
+      />
     </div>
   )
 }
