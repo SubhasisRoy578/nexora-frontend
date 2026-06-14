@@ -1,4 +1,6 @@
-import { View } from '../App'
+// Define View type locally instead of importing from missing '../App'
+type View = 'chat' | 'dashboard' | 'knowledge' | 'settings' | 'analytics' | 'agents' | 'code'
+
 import { useState } from 'react'
 
 const VIEW_LABELS: Record<View, string> = {
@@ -13,12 +15,14 @@ const VIEW_LABELS: Record<View, string> = {
 
 const MODELS = ['claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5', 'gpt-4o', 'gemini-flash']
 
-export default function TopBar({ activeView, rightPanelOpen, setRightPanelOpen, onCommandOpen }: {
+interface TopBarProps {
   activeView: View
   rightPanelOpen: boolean
   setRightPanelOpen: (v: boolean) => void
   onCommandOpen: () => void
-}) {
+}
+
+export default function TopBar({ activeView, rightPanelOpen, setRightPanelOpen, onCommandOpen }: TopBarProps) {
   const [modelOpen, setModelOpen] = useState(false)
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-6')
 
@@ -77,5 +81,3 @@ export default function TopBar({ activeView, rightPanelOpen, setRightPanelOpen, 
     </div>
   )
 }
-EOF
-echo "done"
