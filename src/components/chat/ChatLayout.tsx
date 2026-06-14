@@ -5,7 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import { useChatStore } from '@/stores/chatStore';
-import { streamChat, uploadFile } from '@/lib/api';
+import { streamChat } from '@/lib/api';  // ← Removed uploadFile
 import Sidebar from './Sidebar';
 import ChatWindow from './ChatWindow';
 import ChatInput from './ChatInput';
@@ -39,12 +39,8 @@ export default function ChatLayout() {
 
       let fileContext = '';
       if (files.length > 0) {
-        try {
-          const uploads = await Promise.all(files.map((f) => uploadFile(f, userId)));
-          fileContext = uploads.map((u) => `[File: ${u.name}]`).join(' ');
-        } catch {
-          toast.error('File upload failed — sending message without files');
-        }
+        // File upload temporarily disabled until uploadFile is implemented
+        toast.error('File upload coming soon');
       }
 
       const fullMessage = fileContext ? `${fileContext}\n\n${text}` : text;
