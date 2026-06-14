@@ -8,7 +8,9 @@ interface Message {
   content: string
   tools?: string[]
   timestamp: Date
-  sessionId?: string  // Added for session tracking
+  sessionId?: string
+  isStreaming?: boolean  // ← ADDED for streaming state
+  error?: boolean        // ← ADDED for error state
 }
 
 interface ChatStore {
@@ -16,16 +18,18 @@ interface ChatStore {
   messages: Message[]
   loading: boolean
   error: string | null
-  isTemporaryMode: boolean  // ← ADDED
-  currentSessionId: string | null  // ← ADDED
+  isTemporaryMode: boolean
+  currentSessionId: string | null
   
   // Actions
   sendMessage: (text: string, tools: string[]) => Promise<void>
+  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => string  // ← ADDED
+  updateMessage: (id: string, updates: Partial<Message>) => void      // ← ADDED
   clear: () => void
   setError: (e: string | null) => void
-  setIsTemporaryMode: (value: boolean) => void  // ← ADDED
-  setCurrentSessionId: (id: string | null) => void  // ← ADDED
-  loadSession: (sessionId: string) => Promise<void>  // ← ADDED for persistence
+  setIsTemporaryMode: (value: boolean) => void
+  setCurrentSessionId: (id: string | null) => void
+  loadSession: (sessionId: string) => Promise<void>
 }
 
 let msgId = 0
@@ -36,8 +40,36 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   messages: [],
   loading: false,
   error: null,
-  isTemporaryMode: false,  // ← INITIALIZED
-  currentSessionId: null,  // ← INITIALIZED
+  isTemporaryMode: false,
+  currentSessionId: null,
+
+  // Add a new message manually
+  addMessage: (message) => {
+    const id = genId()
+    const newMessage: Message = {
+      id,
+      type: message.type,
+      content: message.content,
+      tools: message.tools || [],
+      timestamp: new Date(),
+      sessionId: get().currentSessionId || undefined,
+      isStreaming: message.isStreaming || false,
+      error: message.error || false,
+    }
+    set((state) => ({
+      messages: [...state.messages, newMessage]
+    }))
+    return id
+  },
+
+  // Update an existing message by ID
+  updateMessage: (id, updates) => {
+    set((state) => ({
+      messages: state.messages.map((msg) =>
+        msg.id === id ? { ...msg, ...updates } : msg
+      )
+    }))
+  },
 
   // Send message with streaming
   sendMessage: async (text: string, tools: string[]) => {
@@ -66,6 +98,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         tools, 
         timestamp: new Date(),
         sessionId: currentSessionId || undefined,
+        isStreaming: true,
       }
       set((s) => ({ messages: [...s.messages, aiMsg] }))
 
@@ -74,10 +107,17 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         aiResponse += chunk
         set((s) => ({
           messages: s.messages.map((m) =>
-            m.id === aiMsgId ? { ...m, content: aiResponse } : m
+            m.id === aiMsgId ? { ...m, content: aiResponse, isStreaming: true } : m
           ),
         }))
       }
+      
+      // Mark as complete
+      set((s) => ({
+        messages: s.messages.map((m) =>
+          m.id === aiMsgId ? { ...m, isStreaming: false } : m
+        ),
+      }))
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Unknown error'
       set({ error: errMsg })
