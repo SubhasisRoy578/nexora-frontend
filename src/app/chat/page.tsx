@@ -35,12 +35,17 @@ export default function ChatPage() {
 
     const fullMessage = fileContext ? `${fileContext}\n${text}` : text
 
-    // Add user message
-    addMessage({ role: 'user', content: fullMessage })
+    // Add user message - using 'type' instead of 'role' to match chatStore
+    addMessage({ type: 'user', content: fullMessage })
 
     // Add assistant placeholder
     const assistantId = Date.now().toString()
-    addMessage({ id: assistantId, role: 'assistant', content: '', isStreaming: true })
+    addMessage({ 
+      id: assistantId, 
+      type: 'ai',           // ← Changed from 'assistant' to 'ai' to match chatStore
+      content: '', 
+      isStreaming: true 
+    })
 
     let buffer = ''
     try {
