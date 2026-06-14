@@ -1,36 +1,69 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
-import WorkspaceLayout from '@/components/layout/WorkspaceLayout'
-import LeftPanel from '@/components/layout/LeftPanel'
-import RightPanel from '@/components/layout/RightPanel'
+'use client'
+
+import { useCallback } from 'react'
+import { useUser } from '@clerk/nextjs'
+import toast from 'react-hot-toast'
 import ChatWindow from '@/components/chat/ChatWindow'
 import ChatInput from '@/components/chat/ChatInput'
+import WorkspaceLayout from '@/components/layout/WorkspaceLayout'
+import { useChatStore } from '@/stores/chatStore'
+import { streamChat, uploadDocument } from '@/lib/api'
 
-export default async function ChatPage() {
-  const { userId } = await auth()
-  if (!userId) redirect('/')
+export default function ChatPage() {
+  const { user, getToken } = useUser()
+  const { addMessage, updateMessage } = useChatStore()
+  const [isStreaming, setIsStreaming] = useState(false)
+
+  const handleSend = useCallback(async (text: string, files: File[]) => {
+    if (isStreaming) return
+    setIsStreaming(true)
+
+    const token = await getToken()
+
+    // Upload files
+    let fileContext = ''
+    if (files.length) {
+      try {
+        const uploads = await Promise.all(files.map(f => uploadDocument(f, token)))
+        fileContext = uploads.map(u => `[Uploaded: ${u.name}]`).join(' ')
+        toast.success(`${files.length} file(s) uploaded`)
+      } catch (err) {
+        toast.error('Upload failed')
+      }
+    }
+
+    const fullMessage = fileContext ? `${fileContext}\n${text}` : text
+
+    // Add user message
+    addMessage({ role: 'user', content: fullMessage })
+
+    // Add assistant placeholder
+    const assistantId = Date.now().toString()
+    addMessage({ id: assistantId, role: 'assistant', content: '', isStreaming: true })
+
+    let buffer = ''
+    try {
+      for await (const chunk of streamChat(fullMessage, ['rag'], token)) {
+        buffer += chunk
+        updateMessage(assistantId, { content: buffer, isStreaming: true })
+      }
+      updateMessage(assistantId, { content: buffer || 'Done.', isStreaming: false })
+    } catch (err) {
+      updateMessage(assistantId, { content: 'Error processing request', isStreaming: false, error: true })
+    } finally {
+      setIsStreaming(false)
+    }
+  }, [isStreaming, getToken, addMessage, updateMessage])
 
   return (
-    <WorkspaceLayout
-      title="Workspace"
-      tag="RESEARCH_001"
-      leftPanel={<LeftPanel />}
-      rightPanel={<RightPanel />}
-      topbarExtras={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8 }}>
-          <i className="ti ti-brain" style={{ fontSize: 13, color: 'var(--nx-accent2)' }} aria-hidden="true" />
-          <span style={{ fontSize: 11, color: 'var(--nx-text-muted)' }}>Multi-agent · 3 active</span>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--nx-green)', boxShadow: '0 0 6px var(--nx-green)', display: 'inline-block' }} />
-            <span style={{ fontSize: 9, color: 'var(--nx-green)', fontFamily: 'var(--nx-mono)' }}>SYSTEM NOMINAL</span>
-          </div>
-        </div>
-      }
-    >
+    <WorkspaceLayout>
       <section style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <ChatWindow />
-        <ChatInput />
+        <ChatInput onSend={handleSend} disabled={isStreaming} />
       </section>
     </WorkspaceLayout>
   )
 }
+
+// Add missing import
+import { useState } from 'react'
