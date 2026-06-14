@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback } from 'react'
-import { useUser } from '@clerk/nextjs'
+import { useCallback, useState } from 'react'
+import { useUser, useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
 import ChatWindow from '@/components/chat/ChatWindow'
 import ChatInput from '@/components/chat/ChatInput'
@@ -51,6 +51,7 @@ export default function ChatPage() {
       updateMessage(assistantId, { content: buffer || 'Done.', isStreaming: false })
     } catch (err) {
       updateMessage(assistantId, { content: 'Error processing request', isStreaming: false, error: true })
+      toast.error('Failed to get response')
     } finally {
       setIsStreaming(false)
     }
@@ -65,6 +66,3 @@ export default function ChatPage() {
     </WorkspaceLayout>
   )
 }
-
-// Add missing import
-import { useState } from 'react'
