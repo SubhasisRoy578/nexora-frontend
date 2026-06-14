@@ -11,7 +11,7 @@ const TOOLS = [
 ]
 
 export default function ChatInput() {
-  const { sendMessage, isTyping } = useChatStore()
+  const { sendMessage, loading } = useChatStore()  // ← Changed isTyping to loading
   const [value, setValue] = useState('')
   const [activeTools, setActiveTools] = useState<Set<string>>(
     new Set(TOOLS.filter(t => t.defaultOn).map(t => t.id))
@@ -29,7 +29,7 @@ export default function ChatInput() {
   }
 
   function handleSend() {
-    if (!value.trim() || isTyping) return
+    if (!value.trim() || loading) return  // ← Changed isTyping to loading
     sendMessage(value.trim(), Array.from(activeTools))
     setValue('')
     if (textareaRef.current) {
@@ -111,12 +111,12 @@ export default function ChatInput() {
         />
         <button
           onClick={handleSend}
-          disabled={!value.trim() || isTyping}
+          disabled={!value.trim() || loading}
           aria-label="Send message"
           style={{
             width: 30, height: 30, borderRadius: 7, border: 'none',
-            background: value.trim() && !isTyping ? 'var(--nx-accent)' : 'rgba(59,130,246,0.25)',
-            color: '#fff', cursor: value.trim() && !isTyping ? 'pointer' : 'default',
+            background: value.trim() && !loading ? 'var(--nx-accent)' : 'rgba(59,130,246,0.25)',
+            color: '#fff', cursor: value.trim() && !loading ? 'pointer' : 'default',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, transition: 'all 0.15s',
           }}
