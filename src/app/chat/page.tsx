@@ -35,27 +35,35 @@ export default function ChatPage() {
 
     const fullMessage = fileContext ? `${fileContext}\n${text}` : text
 
-    // Add user message - using 'type' instead of 'role' to match chatStore
+    // Add user message
     addMessage({ type: 'user', content: fullMessage })
 
-    // Add assistant placeholder
-    const assistantId = Date.now().toString()
+    // Add assistant placeholder (NO id field - store generates it)
     addMessage({ 
-      id: assistantId, 
-      type: 'ai',           // ← Changed from 'assistant' to 'ai' to match chatStore
+      type: 'ai',
       content: '', 
       isStreaming: true 
     })
+
+    // Get the ID of the last message (the one we just added)
+    const messages = useChatStore.getState().messages
+    const assistantId = messages[messages.length - 1]?.id
 
     let buffer = ''
     try {
       for await (const chunk of streamChat(fullMessage, ['rag'], token)) {
         buffer += chunk
-        updateMessage(assistantId, { content: buffer, isStreaming: true })
+        if (assistantId) {
+          updateMessage(assistantId, { content: buffer, isStreaming: true })
+        }
       }
-      updateMessage(assistantId, { content: buffer || 'Done.', isStreaming: false })
+      if (assistantId) {
+        updateMessage(assistantId, { content: buffer || 'Done.', isStreaming: false })
+      }
     } catch (err) {
-      updateMessage(assistantId, { content: 'Error processing request', isStreaming: false, error: true })
+      if (assistantId) {
+        updateMessage(assistantId, { content: 'Error processing request', isStreaming: false, error: true })
+      }
       toast.error('Failed to get response')
     } finally {
       setIsStreaming(false)
