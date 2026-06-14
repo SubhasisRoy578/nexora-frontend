@@ -1,4 +1,5 @@
-import { View } from '../App'
+// Define View type locally since '../App' doesn't exist
+type View = 'chat' | 'dashboard' | 'knowledge' | 'settings' | 'analytics' | 'agents' | 'code'
 
 const NAV = [
   { id: 'dashboard', label: 'Dashboard', icon: '⬡', badge: null, badgeActive: false },
@@ -91,5 +92,3 @@ export default function Sidebar({ activeView, setActiveView, activeChat, setActi
     </div>
   )
 }
-EOF
-echo "done"
