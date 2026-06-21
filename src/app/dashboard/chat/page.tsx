@@ -1,113 +1,128 @@
+// src/app/dashboard/chat/page.tsx
 'use client'
-// Nexora AI — Chat Page
 
-import { useCallback, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { useUser, useAuth } from '@clerk/nextjs'
-import toast from 'react-hot-toast'
+import { useChatStore } from '@/stores/chatStore'
+import { streamChat, uploadDocument } from '@/lib/api'
 import ChatWindow from '@/components/chat/ChatWindow'
 import ChatInput from '@/components/chat/ChatInput'
-import { useChatStore } from '@/stores/chatStore'
-import { uploadDocument, streamChat } from '@/lib/api'
+import toast from 'react-hot-toast'
 
 export default function ChatPage() {
-  const params = useParams<{ sessionId: string }>()
-  const sessionId = params?.sessionId
   const { user } = useUser()
   const { getToken } = useAuth()
-  const { addMessage, updateMessage, messages, loading, setCurrentSessionId } = useChatStore()
+  const { 
+    addMessage, 
+    updateMessage, 
+    messages, 
+    loading, 
+    setCurrentSessionId, 
+    currentSessionId 
+  } = useChatStore()
+  
   const [isUploading, setIsUploading] = useState(false)
 
-  // Set session ID when available
-  useState(() => {
-    if (sessionId) {
-      setCurrentSessionId(sessionId)
+  // Create a session ID on mount if needed
+  useEffect(() => {
+    if (!currentSessionId) {
+      const newSessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2)}`
+      setCurrentSessionId(newSessionId)
     }
-  })
+  }, [currentSessionId, setCurrentSessionId])
 
-  const handleSend = useCallback(async (text: string, files: File[]) => {
-    if (isStreaming) return
-    
+  const handleSend = async (text: string, files: File[]) => {
+    if (loading || (!text.trim() && files.length === 0)) return
+
     const token = await getToken()
-    let fileContext = ''
-    
+    const sessionId = currentSessionId || `session_${Date.now()}`
+
     // Upload files if any
+    let fileContext = ''
     if (files.length > 0) {
       setIsUploading(true)
       try {
-        const uploads = await Promise.all(
+        const uploadResults = await Promise.all(
           files.map(async (file) => {
             const result = await uploadDocument(file, token)
             return `[Uploaded: ${result.name || file.name}]`
           })
         )
-        fileContext = uploads.join(' ')
+        fileContext = uploadResults.join(' ')
         toast.success(`${files.length} file(s) uploaded successfully`)
-      } catch (err) {
-        console.error('Upload error:', err)
-        toast.error('File upload failed')
+      } catch (error) {
+        console.error('Upload error:', error)
+        toast.error('File upload failed. Proceeding without files.')
       } finally {
         setIsUploading(false)
       }
     }
-    
+
     const fullMessage = fileContext ? `${fileContext}\n\n${text}` : text
-    if (!fullMessage.trim() && files.length === 0) return
-    
+
     // Add user message
-    const userMsgId = addMessage({
+    addMessage({
       type: 'user',
-      content: fullMessage || (files.length ? `[Uploaded ${files.length} file(s)]` : ''),
+      content: fullMessage,
     })
-    
-    // Add assistant placeholder
-    const assistantId = addMessage({
+
+    // Add placeholder for AI response
+    const assistantMessageId = addMessage({
       type: 'ai',
       content: '',
       isStreaming: true,
     })
-    
-    let buffer = ''
-    const tools = ['rag'] // Default RAG tool for knowledge base
-    
-    try {
-      for await (const chunk of streamChat(fullMessage, tools, token)) {
-        buffer += chunk
-        updateMessage(assistantId, { content: buffer, isStreaming: true })
-      }
-      updateMessage(assistantId, { content: buffer || 'Done.', isStreaming: false })
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Stream error'
-      updateMessage(assistantId, { content: `Error: ${errorMsg}`, isStreaming: false, error: true })
-      toast.error(`Error: ${errorMsg}`)
-    }
-  }, [isStreaming, getToken, addMessage, updateMessage])
 
-  // Get recent messages for this session
-  const sessionMessages = messages.filter(m => m.sessionId === sessionId || !m.sessionId)
+    let accumulatedResponse = ''
+
+    try {
+      const tools = ['rag']
+      for await (const chunk of streamChat(fullMessage, tools, token)) {
+        accumulatedResponse += chunk
+        updateMessage(assistantMessageId, {
+          content: accumulatedResponse,
+          isStreaming: true,
+        })
+      }
+
+      updateMessage(assistantMessageId, {
+        content: accumulatedResponse || 'I processed your request.',
+        isStreaming: false,
+      })
+    } catch (error) {
+      console.error('Stream error:', error)
+      updateMessage(assistantMessageId, {
+        content: 'Sorry, an error occurred while processing your request.',
+        isStreaming: false,
+        error: true,
+      })
+      toast.error('Failed to get response')
+    }
+  }
+
+  // Convert messages to the format expected by ChatWindow
+  const formattedMessages = messages.map((msg: any) => ({
+    id: msg.id,
+    role: msg.type === 'user' ? 'user' : 'assistant',
+    content: msg.content,
+    isStreaming: msg.isStreaming,
+    error: msg.error,
+  }))
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Uploading indicator */}
-      {isUploading && (
-        <div className="fixed bottom-24 right-6 bg-gray-800 rounded-lg px-4 py-2 text-sm z-50">
-          📤 Uploading files...
-        </div>
-      )}
-      
-      {/* Messages area */}
+    <div className="flex flex-col h-full bg-black">
       <div className="flex-1 overflow-hidden">
         <ChatWindow 
-          sessionId={sessionId} 
-          messages={sessionMessages}
-          isStreaming={isStreaming}
+          messages={formattedMessages}
+          isLoading={loading}
         />
       </div>
 
-      {/* Input area */}
-      <div className="border-t border-nexora px-4 py-4"
-           style={{ borderColor: 'var(--border-subtle)' }}>
-        <ChatInput onSend={handleSend} disabled={isStreaming || isUploading} />
+      <div className="border-t border-gray-800 px-4 py-4">
+        <ChatInput 
+          onSend={handleSend}
+          disabled={loading || isUploading}
+        />
       </div>
     </div>
   )
