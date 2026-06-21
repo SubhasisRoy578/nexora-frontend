@@ -15,7 +15,7 @@ export default function ChatPage() {
   const sessionId = params?.sessionId
   const { user } = useUser()
   const { getToken } = useAuth()
-  const { addMessage, updateMessage, messages, isStreaming, setIsStreaming, setCurrentSessionId } = useChatStore()
+  const { addMessage, updateMessage, messages, loading, setCurrentSessionId } = useChatStore()
   const [isUploading, setIsUploading] = useState(false)
 
   // Set session ID when available
