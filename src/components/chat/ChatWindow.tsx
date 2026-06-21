@@ -12,18 +12,28 @@ interface Message {
   attachments?: Array<{ id: string; name: string; type: string; size: number }>
 }
 
-// ✅ ADDED: Props interface to accept sessionId
+// ✅ UPDATED: Props interface to accept sessionId, messages, and isLoading
 interface ChatWindowProps {
   sessionId?: string
+  messages?: Message[]  // ← ADDED
+  isLoading?: boolean   // ← ADDED
 }
 
-export default function ChatWindow({ sessionId }: ChatWindowProps) {
-  const { messages, isStreaming, loadSession, currentSessionId } = useChatStore()
+export default function ChatWindow({ 
+  sessionId, 
+  messages: propMessages, 
+  isLoading = false 
+}: ChatWindowProps) {
+  const { messages: storeMessages, isStreaming, loadSession, currentSessionId } = useChatStore()
   const bottomRef = useRef<HTMLDivElement>(null)
-  const activeMessages = useChatStore((s) => s.activeMessages?.() || messages) as Message[]
+  
+  // Use prop messages if provided, otherwise use store messages
+  const messages = propMessages || storeMessages
+  const activeMessages = Array.isArray(messages) ? messages : []
+  
   const sessionLoadedRef = useRef(false)
 
-  // ✅ ADDED: Load session when sessionId prop changes
+  // Load session when sessionId prop changes
   useEffect(() => {
     if (sessionId && sessionId !== currentSessionId && !sessionLoadedRef.current && loadSession) {
       sessionLoadedRef.current = true
@@ -41,7 +51,20 @@ export default function ChatWindow({ sessionId }: ChatWindowProps) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [activeMessages, isStreaming])
 
-  if (activeMessages.length === 0) {
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-gray-400 text-sm">Loading messages...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show empty state
+  if (!activeMessages || activeMessages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center max-w-md px-6">
