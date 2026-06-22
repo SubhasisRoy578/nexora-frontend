@@ -10,31 +10,102 @@ import { UserButton } from '@clerk/nextjs';
 import { useChatStore } from '@/stores/chatStore';
 import { formatDistanceToNow } from 'date-fns';
 
-export default function Sidebar() {
-  const {
-    sessions, activeSessionId, sidebarOpen,
-    createSession, deleteSession, renameSession,
-    setActiveSession, setSidebarOpen,
-    theme, toggleTheme,
-  } = useChatStore();
+// ============================================
+// TYPES
+// ============================================
 
+interface ChatSession {
+  id: string
+  title: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+// ============================================
+// SIDEBAR COMPONENT
+// ============================================
+
+export default function Sidebar() {
+  const { setCurrentSessionId, currentSessionId } = useChatStore();
+  
+  // Local state for sidebar
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue]   = useState('');
+  const [editValue, setEditValue] = useState('');
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  
   const editRef = useRef<HTMLInputElement>(null);
 
+  // Load theme from localStorage on mount
   useEffect(() => {
-    if (editingId && editRef.current) editRef.current.focus();
+    const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+  }, []);
+
+  // Focus edit input when editing starts
+  useEffect(() => {
+    if (editingId && editRef.current) {
+      editRef.current.focus();
+    }
   }, [editingId]);
 
-  const handleNew = () => {
-    createSession();
+  // Toggle theme
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
   };
 
+  // Create a new session
+  const createSession = () => {
+    const newSession: ChatSession = {
+      id: `session_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      title: `New Chat ${sessions.length + 1}`,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    setSessions([newSession, ...sessions]);
+    setActiveSessionId(newSession.id);
+    setCurrentSessionId(newSession.id);
+  };
+
+  // Delete a session
+  const deleteSession = (id: string) => {
+    setSessions(sessions.filter(s => s.id !== id));
+    if (activeSessionId === id) {
+      const nextSession = sessions.find(s => s.id !== id);
+      setActiveSessionId(nextSession?.id || null);
+      setCurrentSessionId(nextSession?.id || null);
+    }
+  };
+
+  // Rename a session
+  const renameSession = (id: string, newTitle: string) => {
+    setSessions(sessions.map(s => 
+      s.id === id ? { ...s, title: newTitle, updatedAt: new Date() } : s
+    ));
+    setEditingId(null);
+  };
+
+  // Set active session
+  const setActiveSession = (id: string) => {
+    setActiveSessionId(id);
+    setCurrentSessionId(id);
+  };
+
+  // Start editing
   const startEdit = (id: string, title: string) => {
     setEditingId(id);
     setEditValue(title);
   };
 
+  // Commit edit
   const commitEdit = () => {
     if (editingId && editValue.trim()) {
       renameSession(editingId, editValue.trim());
@@ -42,11 +113,16 @@ export default function Sidebar() {
     setEditingId(null);
   };
 
+  // Toggle sidebar
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
   return (
     <>
       {/* Collapse toggle (always visible) */}
       <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
+        onClick={toggleSidebar}
         className="absolute top-4 z-50 flex items-center justify-center w-6 h-6 rounded-full border transition-all hover:scale-110"
         style={{
           left: sidebarOpen ? '252px' : '8px',
@@ -98,7 +174,7 @@ export default function Sidebar() {
             {/* New Chat */}
             <div className="px-3 pt-3 pb-2 flex-shrink-0">
               <button
-                onClick={handleNew}
+                onClick={createSession}
                 className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.01] active:scale-[0.99]"
                 style={{
                   background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
