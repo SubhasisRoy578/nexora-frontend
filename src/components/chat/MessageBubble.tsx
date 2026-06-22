@@ -7,7 +7,31 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Copy, Check, User, Bot, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useChatStore, Message, AgentTag } from '@/stores/chatStore';
+import { useChatStore } from '@/stores/chatStore';
+
+// ============================================
+// TYPES DEFINED LOCALLY (since chatStore doesn't export them)
+// ============================================
+
+interface Message {
+  id: string
+  role?: 'user' | 'assistant'
+  type?: 'user' | 'ai'
+  content: string
+  tools?: string[]
+  timestamp: Date | string
+  sessionId?: string
+  isStreaming?: boolean
+  error?: boolean
+  agent?: AgentTag
+  provider?: string
+}
+
+type AgentTag = 'research' | 'rag' | 'code' | 'browser' | 'memory' | 'planner' | 'critic'
+
+// ============================================
+// AGENT LABELS
+// ============================================
 
 const AGENT_LABELS: Record<AgentTag, { label: string; color: string }> = {
   research: { label: 'Research',  color: '#3b82f6' },
@@ -18,6 +42,10 @@ const AGENT_LABELS: Record<AgentTag, { label: string; color: string }> = {
   planner:  { label: 'Planner',   color: '#6366f1' },
   critic:   { label: 'Critic',    color: '#ef4444' },
 };
+
+// ============================================
+// COPY BUTTON
+// ============================================
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -41,6 +69,10 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+// ============================================
+// CODE BLOCK
+// ============================================
+
 interface CodeBlockProps {
   language: string;
   code: string;
@@ -53,7 +85,6 @@ function CodeBlock({ language, code, darkMode }: CodeBlockProps) {
       className="rounded-xl overflow-hidden my-2 border"
       style={{ borderColor: 'var(--border)' }}
     >
-      {/* Code header */}
       <div
         className="flex items-center justify-between px-4 py-2"
         style={{ background: darkMode ? '#1a1a2e' : '#f0f0f8' }}
@@ -84,14 +115,26 @@ function CodeBlock({ language, code, darkMode }: CodeBlockProps) {
   );
 }
 
+// ============================================
+// MESSAGE BUBBLE
+// ============================================
+
 interface Props {
   message: Message;
 }
 
 const MessageBubble = memo(function MessageBubble({ message }: Props) {
-  const theme = useChatStore((s) => s.theme);
-  const isDark = theme === 'dark';
-  const isUser = message.role === 'user';
+  // Get theme from store (if available)
+  let isDark = true;
+  try {
+    const theme = useChatStore((s) => (s as any).theme);
+    isDark = theme === 'dark';
+  } catch {
+    // If theme doesn't exist, default to dark
+    isDark = true;
+  }
+  
+  const isUser = message.role === 'user' || message.type === 'user';
   const agentInfo = message.agent ? AGENT_LABELS[message.agent] : null;
 
   return (
@@ -224,10 +267,10 @@ const MessageBubble = memo(function MessageBubble({ message }: Props) {
           style={{ color: 'var(--text-3)' }}
         >
           <span className="text-[10px]">
-            {new Date(message.timestamp).toLocaleTimeString([], {
+            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], {
               hour: '2-digit',
               minute: '2-digit',
-            })}
+            }) : ''}
           </span>
           {message.provider && (
             <span
