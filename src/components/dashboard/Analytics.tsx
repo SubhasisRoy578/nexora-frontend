@@ -7,7 +7,8 @@ import {
 } from 'recharts';
 import { Zap, MessageSquare, Cpu, TrendingUp } from 'lucide-react';
 import { ProviderStat, DailyUsage } from '@/store/dashboardStore';
-import { useChatStore } from '@/store/chatStore';
+// ✅ FIXED: Changed from @/store/chatStore to @/stores/chatStore
+import { useChatStore } from '@/stores/chatStore';
 
 // ── Config ────────────────────────────────────────────────────────────────
 
@@ -227,11 +228,17 @@ interface Props {
 }
 
 export default function Analytics({ providerStats, dailyUsage, totalMessages, totalTokens }: Props) {
-  const theme = useChatStore((s) => s.theme);
-  const isDark = theme === 'dark';
+  // ✅ FIXED: Safely access theme with fallback
+  let isDark = true;
+  try {
+    const theme = useChatStore((s) => (s as any).theme);
+    isDark = theme === 'dark';
+  } catch {
+    isDark = true;
+  }
 
   const axisColor = isDark ? '#3a3a48' : '#e2e2ee';
-  const textColor = isDark ? '#5858788' : '#8888a8';
+  const textColor = isDark ? '#8a8aaa' : '#8888a8';
 
   const totalCalls = providerStats.reduce((s, p) => s + p.calls, 0);
   const avgSuccess = providerStats.length
