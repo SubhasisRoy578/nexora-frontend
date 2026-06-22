@@ -6,7 +6,8 @@ export default function RightPanel() {
   const store = useAgentStore()
   const agents = store?.agents ?? []
   const tasks = store?.tasks ?? []
-  const notifications = store?.notifications ?? []
+  // ✅ FIXED: notifications doesn't exist in AgentStore, using empty array
+  const notifications: Array<{ id: string; text: string; type: string; time: string }> = []
 
   return (
     <aside
@@ -61,7 +62,7 @@ export default function RightPanel() {
           </>
         )}
 
-        {/* Notifications */}
+        {/* Notifications - temporarily removed since not in store */}
         {notifications && notifications.length > 0 && (
           <>
             <SectionDivider label="Notifications" />
