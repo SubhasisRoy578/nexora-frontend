@@ -12,11 +12,10 @@ interface Message {
   attachments?: Array<{ id: string; name: string; type: string; size: number }>
 }
 
-// ✅ UPDATED: Props interface to accept sessionId, messages, and isLoading
 interface ChatWindowProps {
   sessionId?: string
-  messages?: Message[]  // ← ADDED
-  isLoading?: boolean   // ← ADDED
+  messages?: Message[]
+  isLoading?: boolean
 }
 
 export default function ChatWindow({ 
@@ -24,7 +23,7 @@ export default function ChatWindow({
   messages: propMessages, 
   isLoading = false 
 }: ChatWindowProps) {
-  const { messages: storeMessages, isStreaming, loadSession, currentSessionId } = useChatStore()
+  const { messages: storeMessages, loading, setCurrentSessionId, currentSessionId } = useChatStore()
   const bottomRef = useRef<HTMLDivElement>(null)
   
   // Use prop messages if provided, otherwise use store messages
@@ -35,9 +34,9 @@ export default function ChatWindow({
 
   // Load session when sessionId prop changes
   useEffect(() => {
-    if (sessionId && sessionId !== currentSessionId && !sessionLoadedRef.current && loadSession) {
+    if (sessionId && sessionId !== currentSessionId && !sessionLoadedRef.current) {
       sessionLoadedRef.current = true
-      loadSession(sessionId)
+      setCurrentSessionId(sessionId)
     }
     
     return () => {
@@ -45,14 +44,14 @@ export default function ChatWindow({
         sessionLoadedRef.current = false
       }
     }
-  }, [sessionId, currentSessionId, loadSession])
+  }, [sessionId, currentSessionId, setCurrentSessionId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [activeMessages, isStreaming])
+  }, [activeMessages])
 
   // Show loading state
-  if (isLoading) {
+  if (isLoading || loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
@@ -114,17 +113,6 @@ export default function ChatWindow({
             </div>
           </div>
         ))}
-        {isStreaming && activeMessages[activeMessages.length - 1]?.role === 'user' && (
-          <div className="flex justify-start">
-            <div className="bg-gray-800 rounded-lg px-4 py-2">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100" />
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200" />
-              </div>
-            </div>
-          </div>
-        )}
         <div ref={bottomRef} />
       </div>
     </div>
