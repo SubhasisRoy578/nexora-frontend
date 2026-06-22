@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useAgentStore } from '@/stores/agentStore'
 
-// ✅ Only Groq – since that's your only working LLM
+// Only Groq - since that's your only working LLM
 const MODEL_USAGE = [
   { name: 'Groq Llama', pct: 100, color: '#06b6d4', tokens: '4.6M' },
 ]
@@ -16,9 +16,10 @@ const PERF_STATS = [
 
 export default function AgentDashboard() {
   const { agents, tasks } = useAgentStore()
+  // ✅ Use 0 as default progress since Agent type doesn't have progress
   const [progresses, setProgresses] = useState<Record<string, number>>(
-  Object.fromEntries(agents.map(a => [a.id, a.progress]))
-)
+    Object.fromEntries(agents.map(a => [a.id, 0]))
+  )
 
   useEffect(() => {
     const t = setInterval(() => {
