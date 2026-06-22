@@ -9,6 +9,7 @@ export interface Agent {
   tasks: number
   success: string
   icon?: string
+  progress?: number  // ← ADD THIS
 }
 
 export interface AgentTask {
