@@ -17,8 +17,8 @@ const PERF_STATS = [
 export default function AgentDashboard() {
   const { agents, tasks } = useAgentStore()
   const [progresses, setProgresses] = useState<Record<string, number>>(
-    Object.fromEntries(agents.map(a => [a.id, a.progress]))
-  )
+  Object.fromEntries(agents.map(a => [a.id, a.progress]))
+)
 
   useEffect(() => {
     const t = setInterval(() => {
