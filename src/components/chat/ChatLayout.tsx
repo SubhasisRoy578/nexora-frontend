@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import { useChatStore } from '@/stores/chatStore';
