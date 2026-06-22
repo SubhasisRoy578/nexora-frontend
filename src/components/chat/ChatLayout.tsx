@@ -11,7 +11,8 @@ import ChatWindow from './ChatWindow';
 import ChatInput from './ChatInput';
 
 export default function ChatLayout() {
-  const { user, getToken } = useUser();
+  const { user } = useUser();
+  const { getToken } = useAuth();
   const {
     createSession, addMessage, updateMessage,
     provider, isStreaming, setIsStreaming, sidebarOpen,
