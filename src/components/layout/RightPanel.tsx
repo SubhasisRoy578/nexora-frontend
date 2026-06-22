@@ -52,10 +52,10 @@ export default function RightPanel() {
                 padding: '7px 12px', borderBottom: '1px solid var(--nx-border)',
               }}>
                 <div style={{ fontSize: 11, color: 'var(--nx-text)', fontWeight: 500, marginBottom: 2 }}>
-                  {task.name || 'Task'}
+                  {task.task || 'Task'}  {/* ✅ FIXED: task.task instead of task.name */}
                 </div>
                 <div style={{ fontSize: 9, fontFamily: 'var(--nx-mono)', color: 'var(--nx-text-muted)' }}>
-                  {task.step || 'Processing...'}
+                  {task.status || 'Processing...'}  {/* ✅ FIXED: task.status instead of task.step */}
                 </div>
               </div>
             ))}
