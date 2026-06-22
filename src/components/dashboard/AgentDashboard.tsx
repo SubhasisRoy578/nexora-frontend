@@ -2,11 +2,9 @@
 import { useEffect, useState } from 'react'
 import { useAgentStore } from '@/stores/agentStore'
 
+// ✅ Only Groq – since that's your only working LLM
 const MODEL_USAGE = [
-  { name: 'Claude Sonnet', pct: 52, color: '#8b5cf6', tokens: '2.4M' },
-  { name: 'Groq Llama',    pct: 28, color: '#06b6d4', tokens: '1.3M' },
-  { name: 'Gemini Flash',  pct: 12, color: '#10b981', tokens: '560K' },
-  { name: 'GPT-4o mini',   pct: 8,  color: '#f59e0b', tokens: '370K' },
+  { name: 'Groq Llama', pct: 100, color: '#06b6d4', tokens: '4.6M' },
 ]
 
 const PERF_STATS = [
@@ -17,7 +15,7 @@ const PERF_STATS = [
 ]
 
 export default function AgentDashboard() {
-  const { agents, tasks, notifications } = useAgentStore()
+  const { agents, tasks } = useAgentStore()
   const [progresses, setProgresses] = useState<Record<string, number>>(
     Object.fromEntries(agents.map(a => [a.id, a.progress]))
   )
@@ -72,7 +70,7 @@ export default function AgentDashboard() {
           </div>
         </div>
 
-        {/* Model usage */}
+        {/* Model usage - Only Groq */}
         <div>
           <SectionHeader icon="ti-chart-bar" label="Model Usage" />
           <div style={{
