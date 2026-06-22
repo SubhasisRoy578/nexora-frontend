@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useState } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import { useChatStore } from '@/stores/chatStore';
-import { streamChat, uploadDocument } from '@/lib/api';  // Using your actual uploadDocument
+import { streamChat, uploadDocument } from '@/lib/api';
 import Sidebar from './Sidebar';
 import ChatWindow from './ChatWindow';
 import ChatInput from './ChatInput';
@@ -13,111 +13,110 @@ import ChatInput from './ChatInput';
 export default function ChatLayout() {
   const { user } = useUser();
   const { getToken } = useAuth();
-  const {
-    createSession, addMessage, updateMessage,
-    provider, isStreaming, setIsStreaming, sidebarOpen,
+  const { 
+    messages, 
+    addMessage, 
+    updateMessage, 
+    loading, 
+    setCurrentSessionId, 
+    currentSessionId 
   } = useChatStore();
-
-  const activeSessionId = useChatStore((s) => s.activeSessionId);
-  const activeMessages = useChatStore((s) => s.activeMessages());
-
+  
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
 
+  // Create a session ID on mount
   useEffect(() => {
-    if (!activeSessionId) createSession();
-  }, [activeSessionId, createSession]);
+    if (!currentSessionId) {
+      const newSessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      setCurrentSessionId(newSessionId);
+    }
+  }, [currentSessionId, setCurrentSessionId]);
 
   const handleSend = useCallback(
     async (text: string, files: File[]) => {
-      if (isStreaming) return;
-
-      let sessionId = activeSessionId;
-      if (!sessionId) {
-        sessionId = createSession();
-      }
+      if (isStreaming || (!text.trim() && files.length === 0)) return;
 
       const token = await getToken();
       const userId = user?.id ?? 'anonymous';
+      const sessionId = currentSessionId || `session_${Date.now()}`;
 
-      // Upload files to your RAG backend
+      // Upload files if any
       let fileContext = '';
       if (files.length > 0) {
         try {
-          const uploads = await Promise.all(
+          const uploadResults = await Promise.all(
             files.map(async (file) => {
               const result = await uploadDocument(file, token);
-              return `[File: ${result.name || file.name} - ${result.chunks || '?'} chunks indexed]`;
+              return `[Uploaded: ${result.name || file.name}]`;
             })
           );
-          fileContext = uploads.join(' ');
-          toast.success(`${files.length} file(s) uploaded and indexed to RAG`);
-        } catch (err) {
-          console.error('Upload error:', err);
-          toast.error('File upload failed — sending message without files');
+          fileContext = uploadResults.join(' ');
+          toast.success(`${files.length} file(s) uploaded successfully`);
+        } catch (error) {
+          console.error('Upload error:', error);
+          toast.error('File upload failed. Proceeding without files.');
         }
       }
 
       const fullMessage = fileContext ? `${fileContext}\n\n${text}` : text;
 
       // Add user message
-      addMessage(sessionId, {
-        role: 'user',
+      addMessage({
+        type: 'user',
         content: fullMessage,
-        attachments: files.map((f) => ({
-          id: Math.random().toString(36).slice(2),
-          name: f.name,
-          type: f.type,
-          size: f.size,
-        })),
       });
 
-      // Add assistant placeholder
-      const assistantId = addMessage(sessionId, {
-        role: 'assistant',
+      // Add placeholder for AI response
+      const assistantMessageId = addMessage({
+        type: 'ai',
         content: '',
         isStreaming: true,
       });
 
+      let accumulatedResponse = '';
       setIsStreaming(true);
 
-      const abort = new AbortController();
-      abortRef.current = abort;
-
-      let buffer = '';
-      const tools = Array.from(new Set(['rag', ...(text.includes('code') ? ['code'] : [])]));
-
       try {
+        const tools = ['rag'];
         for await (const chunk of streamChat(fullMessage, tools, token)) {
-          buffer += chunk;
-          updateMessage(sessionId!, assistantId, {
-            content: buffer,
+          accumulatedResponse += chunk;
+          updateMessage(assistantMessageId, {
+            content: accumulatedResponse,
             isStreaming: true,
           });
         }
 
-        updateMessage(sessionId!, assistantId, {
-          content: buffer || 'Done.',
+        updateMessage(assistantMessageId, {
+          content: accumulatedResponse || 'I processed your request.',
           isStreaming: false,
         });
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Stream error';
-        updateMessage(sessionId!, assistantId, {
-          content: `Error: ${errorMsg}`,
+      } catch (error) {
+        console.error('Stream error:', error);
+        updateMessage(assistantMessageId, {
+          content: 'Sorry, an error occurred while processing your request.',
           isStreaming: false,
           error: true,
         });
-        toast.error(`Error: ${errorMsg}`);
+        toast.error('Failed to get response');
       } finally {
         setIsStreaming(false);
       }
     },
-    [
-      isStreaming, activeSessionId, createSession,
-      user, getToken, provider, addMessage, updateMessage, setIsStreaming,
-    ]
+    [isStreaming, getToken, user, currentSessionId, addMessage, updateMessage]
   );
 
-  const sessionTitle = activeMessages.find(m => m.role === 'user')?.content?.slice(0, 42) ?? 'Nexora AI';
+  // Convert messages to the format expected by ChatWindow
+  const formattedMessages = messages.map((msg: any) => ({
+    id: msg.id,
+    role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
+    content: msg.content,
+    isStreaming: msg.isStreaming,
+    error: msg.error,
+  }));
+
+  const sessionTitle = messages.find((m: any) => m.type === 'user')?.content?.slice(0, 42) ?? 'Nexora AI';
 
   return (
     <div
@@ -166,7 +165,7 @@ export default function ChatLayout() {
                 {sessionTitle}
               </h1>
               <p className="text-[11px]" style={{ color: 'var(--text-3, #6B7280)' }}>
-                {activeMessages.length} messages
+                {messages.length} messages
               </p>
             </div>
           </div>
@@ -184,7 +183,10 @@ export default function ChatLayout() {
           </div>
         </div>
 
-        <ChatWindow />
+        <ChatWindow 
+          messages={formattedMessages}
+          isLoading={loading || isStreaming}
+        />
 
         <div
           className="flex-shrink-0 px-4 pb-4 pt-2 border-t"
