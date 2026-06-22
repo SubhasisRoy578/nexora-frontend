@@ -102,12 +102,12 @@ export default function ChatPage() {
 
   // Convert messages to the format expected by ChatWindow
   const formattedMessages = messages.map((msg: any) => ({
-    id: msg.id,
-    role: msg.type === 'user' ? 'user' : 'assistant',
-    content: msg.content,
-    isStreaming: msg.isStreaming,
-    error: msg.error,
-  }))
+  id: msg.id,
+  role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
+  content: msg.content,
+  isStreaming: msg.isStreaming,
+  error: msg.error,
+}))
 
   return (
     <div className="flex flex-col h-full bg-black">
