@@ -8,9 +8,10 @@ import {
 } from 'lucide-react';
 // ✅ FIXED: Changed from @/store/chatStore to @/stores/chatStore
 import { useChatStore } from '@/stores/chatStore';
-// ✅ FIXED: Changed from @/store/dashboardStore to @/stores/dashboardStore
-import { useDashboardStore } from '@/stores/dashboardStore';
-import { getMockDashboardData } from '@/lib/dashboardApi';
+// ✅ REMOVED: useDashboardStore (doesn't exist)
+// import { useDashboardStore } from '@/stores/dashboardStore';
+// ✅ REMOVED: getMockDashboardData (not needed)
+// import { getMockDashboardData } from '@/lib/dashboardApi';
 import AgentCards from './AgentCards';
 
 type View = 'dashboard' | 'chat' | 'knowledge' | 'agents' | 'analytics' | 'settings';
@@ -39,13 +40,6 @@ export default function DashboardLayout({
   }
   
   const isDark = theme === 'dark';
-  
-  // Get dashboard data
-  const { metrics, agents, loading, error, fetchDashboardData } = useDashboardStore();
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
 
   // Network status
   useEffect(() => {
@@ -60,8 +54,7 @@ export default function DashboardLayout({
   }, []);
 
   const toggleTheme = () => {
-    // You can add theme toggle logic here
-    // For now, we'll just toggle a class on document
+    // Toggle theme on document
     const newTheme = isDark ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', newTheme);
     // If you have a theme store, update it here
