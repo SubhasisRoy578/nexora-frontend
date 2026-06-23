@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import {
   MessageSquare, LayoutDashboard, Plus,
   Sun, Moon, Zap, ChevronLeft, ChevronRight
@@ -17,7 +18,36 @@ const NAV = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { theme, toggleTheme, sidebarOpen, setSidebarOpen, createSession } = useChatStore();
+  const { setCurrentSessionId } = useChatStore();
+  
+  // ✅ Local state for sidebar
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // ✅ Local state for theme with localStorage
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+  }, []);
+
+  // Toggle theme
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+  };
+
+  // Create a new chat session
+  const createSession = () => {
+    const newSessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    setCurrentSessionId(newSessionId);
+  };
 
   return (
     <>
@@ -63,7 +93,7 @@ export default function Sidebar() {
 
             {/* New Chat button */}
             <div className="px-3 pt-3 pb-2">
-              <Link href="/chat" onClick={() => createSession()}>
+              <Link href="/chat" onClick={createSession}>
                 <button
                   className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.01]"
                   style={{
