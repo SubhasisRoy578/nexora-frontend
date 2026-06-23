@@ -1,32 +1,15 @@
-# Dependencies
-node_modules/
-npm-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
 
-# Build outputs
-dist/
-build/
+# Environment variables
+.env*.local
+
+# Common ignores
+node_modules
 .next/
-out/
-
-# Environment
-.env
-.env.local
-.env.*.local
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
 .DS_Store
-
-# Logs
-*.log
-logs/
-
-# Testing
-coverage/
-.nyc_output/
