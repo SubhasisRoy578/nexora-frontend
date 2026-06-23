@@ -3,9 +3,9 @@
 import { useCallback, useState } from 'react'
 import { useUser, useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
-import ChatWindow from '@/components/chat/ChatWindow'
-import ChatInput from '@/components/chat/ChatInput'
-import WorkspaceLayout from '@/components/layout/WorkspaceLayout'
+import ChatWindow from '../../components/chat/ChatWindow'
+import ChatInput from '../../components/chat/ChatInput'
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout'
 import { useChatStore } from '@/stores/chatStore'
 import { streamChat, uploadDocument } from '@/lib/api'
 
