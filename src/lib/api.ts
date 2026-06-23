@@ -101,27 +101,31 @@ export const connectAgentSocket = (
   onMessage: (data: any) => void,
   onError?: (e: Event) => void
 ) => {
-  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-  const host = process.env.NEXT_PUBLIC_API_URL || 'localhost:8000'
-  const ws = new WebSocket(`${protocol}://${host}/ws/agent-activity`)
+  // ✅ FIX: Use secure WebSocket for Render
+  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const host = process.env.NEXT_PUBLIC_API_URL || 'localhost:8000';
+  
+  // ✅ FIX: Remove protocol from host if it includes http://
+  const cleanHost = host.replace(/^https?:\/\//, '');
+  
+  const ws = new WebSocket(`${protocol}://${cleanHost}/ws/agent-activity`);
 
-  ws.onopen = () => console.log('🟢 Agent socket connected')
+  ws.onopen = () => console.log('🟢 Agent socket connected');
   ws.onmessage = (e) => {
     try {
-      onMessage(JSON.parse(e.data))
+      onMessage(JSON.parse(e.data));
     } catch (err) {
-      console.error('Socket message parse error:', err)
+      console.error('Socket message parse error:', err);
     }
-  }
+  };
   ws.onerror = (e) => {
-    console.error('🔴 Socket error:', e)
-    onError?.(e)
-  }
-  ws.onclose = () => console.log('🟡 Agent socket closed')
+    console.error('🔴 Socket error:', e);
+    onError?.(e);
+  };
+  ws.onclose = () => console.log('🟡 Agent socket closed');
 
-  return ws
-}
-
+  return ws;
+};
 // ============================================
 // ⭐ ADDITIONS FOR COMPATIBILITY (DO NOT REMOVE)
 // ============================================
