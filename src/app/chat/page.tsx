@@ -12,7 +12,7 @@ import { streamChat, uploadDocument } from '@/lib/api'
 export default function ChatPage() {
   const { user } = useUser()
   const { getToken } = useAuth()
-  const { addMessage, updateMessage } = useChatStore()
+  const { addMessage, updateMessage, messages } = useChatStore()
   const [isStreaming, setIsStreaming] = useState(false)
 
   const handleSend = useCallback(async (text: string, files: File[]) => {
@@ -38,7 +38,7 @@ export default function ChatPage() {
     // Add user message
     addMessage({ type: 'user', content: fullMessage })
 
-    // Add assistant placeholder (NO id field - store generates it)
+    // Add assistant placeholder
     addMessage({ 
       type: 'ai',
       content: '', 
@@ -46,8 +46,8 @@ export default function ChatPage() {
     })
 
     // Get the ID of the last message (the one we just added)
-    const messages = useChatStore.getState().messages
-    const assistantId = messages[messages.length - 1]?.id
+    const currentMessages = useChatStore.getState().messages
+    const assistantId = currentMessages[currentMessages.length - 1]?.id
 
     let buffer = ''
     try {
@@ -73,7 +73,7 @@ export default function ChatPage() {
   return (
     <WorkspaceLayout>
       <section style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <ChatWindow />
+        <ChatWindow messages={messages} />
         <ChatInput onSend={handleSend} disabled={isStreaming} />
       </section>
     </WorkspaceLayout>
