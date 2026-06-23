@@ -6,8 +6,8 @@ import toast from 'react-hot-toast'
 import ChatWindow from '../../components/chat/ChatWindow'
 import ChatInput from '../../components/chat/ChatInput'
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout'
-import { useChatStore } from '@/stores/chatStore'
-import { streamChat, uploadDocument } from '@/lib/api'
+import { useChatStore } from '../stores/chatStore'
+import { streamChat, uploadDocument } from '../lib/api'
 
 export default function ChatPage() {
   const { user } = useUser()
